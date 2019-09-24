@@ -143,8 +143,6 @@ public class CharacterController2D : MonoBehaviour
 		theScale.x *= -1;
 		transform.localScale = theScale;
 	}
-<<<<<<< HEAD
-=======
 
 	public bool isFacingRight(){
 		if(this.m_FacingRight){
@@ -153,5 +151,4 @@ public class CharacterController2D : MonoBehaviour
 			return false;
 		}
 	}
->>>>>>> new_master
 }

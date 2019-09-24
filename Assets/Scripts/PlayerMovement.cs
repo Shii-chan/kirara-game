@@ -13,43 +13,23 @@ public class PlayerMovement : MonoBehaviour
 
     float horizontalMove = 0f;
 
-<<<<<<< HEAD
-    public GameObject flask;
-=======
     public GameObject matchPrefab;
     public bool matchSpawned = false;
 
     private bool jump = false;
->>>>>>> new_master
 
     // Start is called before the first frame update
     void Start()
     {
         
     }
-<<<<<<< HEAD
-
-    // Update is called once per frame
-    void Update()
-    {
-        //Time.fixedDeltaTime;
-        //horizontalMove = Input.GetAxisRaw("Horizontal") * runSpeed;
-        //Vector2 currentPos = this.transform.position;
-        //this.transform.position = new Vector2(this.transform.position.x + horizontalMove, this.transform.position.y);
-
-=======
     
     void Update()
     {
->>>>>>> new_master
         horizontalMove = Input.GetAxisRaw("Horizontal") * runSpeed;
 
         if (Input.GetKeyDown(KeyCode.X))
         {
-<<<<<<< HEAD
-            throwFlask();
-        }
-=======
             throwMatch();
         }
 
@@ -57,20 +37,10 @@ public class PlayerMovement : MonoBehaviour
             this.jump = true;
         }
 
->>>>>>> new_master
     }
 
     private void FixedUpdate()
     {
-<<<<<<< HEAD
-        controller.Move(horizontalMove * Time.fixedDeltaTime, false, false);
-    }
-
-    private void throwFlask()
-    {
-        Vector2 startLocation = this.transform.position;
-        Instantiate(flask, startLocation, Quaternion.identity);
-=======
             controller.Move(horizontalMove * Time.fixedDeltaTime, false, jump);
             this.jump = false;
             // controller.Move(horizontalMove * Time.fixedDeltaTime, false, false);
@@ -114,6 +84,5 @@ public class PlayerMovement : MonoBehaviour
 
     public void resetMatch(){
         this.matchSpawned = false;
->>>>>>> new_master
     }
 }

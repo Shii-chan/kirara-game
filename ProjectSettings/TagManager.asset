@@ -41,8 +41,6 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
-<<<<<<< HEAD
-=======
   - name: Background
     uniqueID: 3304374685
     locked: 0
@@ -52,4 +50,3 @@ TagManager:
   - name: Sprites
     uniqueID: 3162387103
     locked: 0
->>>>>>> new_master

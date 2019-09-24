@@ -530,7 +530,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   runSpeed: 40
   controller: {fileID: 528072116}
-  matchPrefab: {fileID: 1276257498197289040, guid: 89fdaaf7961b80d4684157187962d01c,
+  matchPrefab: {fileID: 1276257498197289040, guid: b22dc11bd14d9ed4b86ca66b43cd3757,
     type: 3}
   matchSpawned: 0
 --- !u!114 &528072116
