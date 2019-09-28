@@ -6,6 +6,7 @@ public class KiraraContainerScript : MonoBehaviour
 {
 
     CanvasGroup canvasGroup;
+    
 
     private enum State {
         FadingIn,
@@ -15,6 +16,7 @@ public class KiraraContainerScript : MonoBehaviour
 
     private State curState;
 
+    public GameObject bookSprite;
     public float fadeStep = 0.01f;
 
     // Start is called before the first frame update
@@ -22,13 +24,11 @@ public class KiraraContainerScript : MonoBehaviour
     {
         canvasGroup = this.GetComponent<CanvasGroup>();
         curState = State.Neutral;
-        // faceIn();
     }
 
     // Update is called once per frame
     void Update()
     {
-        Debug.Log(curState);
         if(curState==State.FadingIn)   {
             if(this.canvasGroup.alpha<1){
                 this.canvasGroup.alpha = this.canvasGroup.alpha + fadeStep;
@@ -43,10 +43,12 @@ public class KiraraContainerScript : MonoBehaviour
     }
 
     public void faceIn(){
-        this.curState = State.FadingIn;     
+        this.curState = State.FadingIn;    
+        this.bookSprite.GetComponent<BookSpriteScript> ().setOpenBook();
     }
 
     public void faceOut(){
         this.curState = State.FadingOut;     
+        this.bookSprite.GetComponent<BookSpriteScript> ().setClosedBook();
     }
 }
