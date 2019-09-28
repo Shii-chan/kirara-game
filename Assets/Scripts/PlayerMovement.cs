@@ -18,6 +18,8 @@ public class PlayerMovement : MonoBehaviour
 
     private bool jump = false;
 
+    public GameObject kiraraContainer;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -35,6 +37,12 @@ public class PlayerMovement : MonoBehaviour
 
         if(Input.GetButtonDown("Jump")){
             this.jump = true;
+        }
+
+        if(Input.GetKey(KeyCode.LeftControl)){
+            kiraraContainer.GetComponent<KiraraContainerScript>().faceIn();
+        } else {
+            kiraraContainer.GetComponent<KiraraContainerScript>().faceOut();
         }
 
     }
