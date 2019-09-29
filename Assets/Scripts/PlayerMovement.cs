@@ -39,7 +39,7 @@ public class PlayerMovement : MonoBehaviour
             this.jump = true;
         }
 
-        if(Input.GetKey(KeyCode.LeftControl)){
+        if(Input.GetKey(KeyCode.LeftShift)){
             kiraraContainer.GetComponent<KiraraContainerScript>().faceIn();
         } else {
             kiraraContainer.GetComponent<KiraraContainerScript>().faceOut();
