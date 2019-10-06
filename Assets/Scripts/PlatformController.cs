@@ -7,6 +7,7 @@ public class PlatformController : RaycastCollision
     public LayerMask passengerMask;
     public Vector3 move;
     List<PassengerMovement> passengers;
+    Dictionary<Transform,CharacterController2D> passengerDictionary = new Dictionary<Transform, CharacterController2D>();
     public float timer = 0;
     public int turnaround;
     public override void Start()
@@ -33,8 +34,11 @@ public class PlatformController : RaycastCollision
     }
     void MovePassengers(bool moveBefore){
         foreach (PassengerMovement passenger in passengers){
+            if (!passengerDictionary.ContainsKey(passenger.transform)){
+                passengerDictionary.Add(passenger.transform, passenger.transform.GetComponent<CharacterController2D>());
+            }
             if (passenger.moveBefore == moveBefore){
-                passenger.transform.GetComponent<CharacterController2D>().Move(passenger.velocity, passenger.standingOnPlatform);
+                passengerDictionary[passenger.transform].Move(passenger.velocity, passenger.standingOnPlatform);
             }
         }
     }

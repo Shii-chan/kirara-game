@@ -45,7 +45,7 @@ public class PlayerMovement : MonoBehaviour
         {
             throwMatch();
         }*/
-        if (controller.collisions.below) velocity.y = 0;
+        if (controller.collisions.below || controller.collisions.above) velocity.y = 0;
         if(Input.GetButtonDown("Jump") && controller.collisions.below) {
             velocity.y += jumpVelocity;
         }
