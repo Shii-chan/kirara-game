@@ -1,154 +1,148 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-public class CharacterController2D : MonoBehaviour
+public class CharacterController2D : RaycastCollision
 {
-	[SerializeField] private float m_JumpForce = 400f;							// Amount of force added when the player jumps.
-	[Range(0, 1)] [SerializeField] private float m_CrouchSpeed = .36f;			// Amount of maxSpeed applied to crouching movement. 1 = 100%
-	[Range(0, .3f)] [SerializeField] private float m_MovementSmoothing = .05f;	// How much to smooth out the movement
-	[SerializeField] private bool m_AirControl = false;							// Whether or not a player can steer while jumping;
-	[SerializeField] private LayerMask m_WhatIsGround;							// A mask determining what is ground to the character
-	[SerializeField] private Transform m_GroundCheck;							// A position marking where to check if the player is grounded.
-	[SerializeField] private Transform m_CeilingCheck;							// A position marking where to check for ceilings
-	[SerializeField] private Collider2D m_CrouchDisableCollider;				// A collider that will be disabled when crouching
+	float maxClimbAngle = 65f;
+	float maxDescendAngle = 60f;
 
-	const float k_GroundedRadius = .2f; // Radius of the overlap circle to determine if grounded
-	private bool m_Grounded;            // Whether or not the player is grounded.
-	const float k_CeilingRadius = .2f; // Radius of the overlap circle to determine if the player can stand up
-	private Rigidbody2D m_Rigidbody2D;
-	private bool m_FacingRight = true;  // For determining which way the player is currently facing.
-	private Vector3 m_Velocity = Vector3.zero;
+	public void Move(Vector3 velocity, bool standingOn){
+		UpdateRaycastOrigins();
+		collisions.Reset();
+		collisions.oldVelocityl = velocity;
+		if (velocity.y < 0) DescendSlope(ref velocity);
+		if (velocity.x != 0) HorisontalCollisions(ref velocity);
+		if (velocity.y != 0) VerticalCollisions(ref velocity);
+		transform.Translate(velocity);
 
-	[Header("Events")]
-	[Space]
-
-	public UnityEvent OnLandEvent;
-
-	[System.Serializable]
-	public class BoolEvent : UnityEvent<bool> { }
-
-	public BoolEvent OnCrouchEvent;
-	private bool m_wasCrouching = false;
-
-	private void Awake()
-	{
-		m_Rigidbody2D = GetComponent<Rigidbody2D>();
-
-		if (OnLandEvent == null)
-			OnLandEvent = new UnityEvent();
-
-		if (OnCrouchEvent == null)
-			OnCrouchEvent = new BoolEvent();
-	}
-
-	private void FixedUpdate()
-	{
-		bool wasGrounded = m_Grounded;
-		m_Grounded = false;
-
-		// The player is grounded if a circlecast to the groundcheck position hits anything designated as ground
-		// This can be done using layers instead but Sample Assets will not overwrite your project settings.
-		Collider2D[] colliders = Physics2D.OverlapCircleAll(m_GroundCheck.position, k_GroundedRadius, m_WhatIsGround);
-		for (int i = 0; i < colliders.Length; i++)
-		{
-			if (colliders[i].gameObject != gameObject)
-			{
-				m_Grounded = true;
-				if (!wasGrounded)
-					OnLandEvent.Invoke();
-			}
+		if (standingOn){
+			collisions.below = true;
 		}
 	}
 
+	void VerticalCollisions(ref Vector3 velocity){
+		float dirY = Mathf.Sign(velocity.y);
+		float rayLenght = Mathf.Abs(velocity.y)+skin;
+		Vector2 rayOrigin;
+		
 
-	public void Move(float move, bool crouch, bool jump)
-	{
-		// If crouching, check to see if the character can stand up
-		if (!crouch)
-		{
-			// If the character has a ceiling preventing them from standing up, keep them crouching
-			if (Physics2D.OverlapCircle(m_CeilingCheck.position, k_CeilingRadius, m_WhatIsGround))
-			{
-				crouch = true;
-			}
-		}
+		for (int i = 0; i < vertRayCount; i++){
+			if (dirY == -1) rayOrigin = origins.bottomLeft;
+			else rayOrigin = origins.topLeft;
+			rayOrigin +=Vector2.right * (vertRaySpacing * i + velocity.x);
+			RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.up * dirY, rayLenght, collisionMask);
+			
 
-		//only control the player if grounded or airControl is turned on
-		if (m_Grounded || m_AirControl)
-		{
+			if (hit) {
+				velocity.y = (hit.distance - skin) * dirY;
+				rayLenght = hit.distance;
 
-			// If crouching
-			if (crouch)
-			{
-				if (!m_wasCrouching)
-				{
-					m_wasCrouching = true;
-					OnCrouchEvent.Invoke(true);
+				if (collisions.ascSlope){
+					velocity.x = velocity.y / Mathf.Tan (collisions.slopeAngle * Mathf.Deg2Rad) * Mathf.Sign(velocity.x);
 				}
 
-				// Reduce the speed by the crouchSpeed multiplier
-				move *= m_CrouchSpeed;
+				collisions.above = dirY == 1;
+				collisions.below = dirY == -1;
+			}
 
-				// Disable one of the colliders when crouching
-				if (m_CrouchDisableCollider != null)
-					m_CrouchDisableCollider.enabled = false;
-			} else
-			{
-				// Enable the collider when not crouching
-				if (m_CrouchDisableCollider != null)
-					m_CrouchDisableCollider.enabled = true;
-
-				if (m_wasCrouching)
-				{
-					m_wasCrouching = false;
-					OnCrouchEvent.Invoke(false);
+			Debug.DrawRay(rayOrigin, Vector2.up*dirY*rayLenght, Color.red);
+		}
+		if (collisions.ascSlope) {
+			float dirX = Mathf.Sign(velocity.x);
+			rayLenght = Mathf.Abs(velocity.x) + skin;
+			if (dirX == -1) rayOrigin = origins.bottomLeft + Vector2.up * velocity.y;
+			else rayOrigin = origins.bottomRight + Vector2.up * velocity.y;
+			RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.right*dirX, rayLenght, collisionMask);
+			if (hit){
+				float slopeAngle = Vector2.Angle(hit.normal, Vector2.up);
+				if (slopeAngle != collisions.slopeAngle){
+					velocity.x = (hit.distance - skin) * dirX;
+					collisions.slopeAngle = slopeAngle;
 				}
 			}
+		}
+	}
 
-			// Move the character by finding the target velocity
-			Vector3 targetVelocity = new Vector2(move * 10f, m_Rigidbody2D.velocity.y);
-			// And then smoothing it out and applying it to the character
-			m_Rigidbody2D.velocity = Vector3.SmoothDamp(m_Rigidbody2D.velocity, targetVelocity, ref m_Velocity, m_MovementSmoothing);
+	void HorisontalCollisions(ref Vector3 velocity){
+		float dirX = Mathf.Sign(velocity.x);
+		float rayLenght = Mathf.Abs(velocity.x)+skin;
+		Vector2 rayOrigin;
+		
 
-			// If the input is moving the player right and the player is facing left...
-			if (move > 0 && !m_FacingRight)
-			{
-				// ... flip the player.
-				Flip();
+		for (int i = 0; i < horiRayCount; i++){
+			if (dirX == -1) rayOrigin = origins.bottomLeft;
+			else rayOrigin = origins.bottomRight;
+			rayOrigin +=Vector2.up * (horRaySpacing * i);
+			RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.right * dirX, rayLenght, collisionMask);
+			
+
+			if (hit) {
+				float slopeAngle = Vector2.Angle(hit.normal, Vector2.up);
+				if (i == 0 && slopeAngle <= maxClimbAngle) {
+					if (collisions.descSlope){
+						collisions.descSlope = false;
+						velocity = collisions.oldVelocityl;
+					}
+					float distanceToSlopeStart = 0;
+					if (slopeAngle <= collisions.slopeAngleOld) {
+						distanceToSlopeStart = hit.distance - skin;
+						velocity.x -= distanceToSlopeStart * dirX;
+					}
+					ClimbSlope(ref velocity, slopeAngle);
+					velocity.x += distanceToSlopeStart * dirX;
+				}
+				if (!collisions.ascSlope || slopeAngle > maxClimbAngle) {
+					velocity.x = (hit.distance - skin) * dirX;
+					rayLenght = hit.distance;
+
+					if (collisions.ascSlope){
+						velocity.y = Mathf.Tan(collisions.slopeAngle * Mathf.Deg2Rad) * Mathf.Abs(velocity.x);
+					}
+					collisions.left = dirX == -1;
+					collisions.right = dirX == 1;
+				}
 			}
-			// Otherwise if the input is moving the player left and the player is facing right...
-			else if (move < 0 && m_FacingRight)
-			{
-				// ... flip the player.
-				Flip();
+			Debug.DrawRay(rayOrigin, Vector2.right*dirX*rayLenght, Color.red);
+		}
+	}
+
+	void ClimbSlope(ref Vector3 velocity, float slopeAngle){
+		float moveDistance = Mathf.Abs(velocity.x);
+		float climbVelocityY = Mathf.Sin ( slopeAngle * Mathf.Deg2Rad) * moveDistance;
+		if (velocity.y <= climbVelocityY){
+			velocity.y = climbVelocityY;
+			velocity.x = Mathf.Cos (slopeAngle * Mathf.Deg2Rad) * moveDistance * Mathf.Sign(velocity.x);
+			collisions.below = true;
+			collisions.ascSlope = true;
+			collisions.slopeAngle = slopeAngle;
+		}
+	}
+
+	void DescendSlope(ref Vector3 velocity){
+		float dirX = Mathf.Sign(velocity.x);
+		Vector2 rayOrigin;
+		if (dirX == -1) rayOrigin = origins.bottomRight;
+		else rayOrigin = origins.bottomLeft;
+		RaycastHit2D hit = Physics2D.Raycast(rayOrigin, -Vector2.up, bcollider.bounds.size.y, collisionMask);
+		if (hit){
+			float slopeAngle = Vector2.Angle(hit.normal, Vector2.up);
+			if (slopeAngle != 0 && slopeAngle <= maxDescendAngle){
+				if (Mathf.Sign(hit.normal.x) == dirX){
+					if (hit.distance - skin <= Mathf.Tan(slopeAngle * Mathf.Deg2Rad) * Mathf.Abs(velocity.x)){
+						float moveDistance = Mathf.Abs(velocity.x);
+						float descendVelocityY = Mathf.Sin ( slopeAngle * Mathf.Deg2Rad) * moveDistance;
+						velocity.x = Mathf.Cos (slopeAngle * Mathf.Deg2Rad) * moveDistance * Mathf.Sign(velocity.x);
+						velocity.y -= descendVelocityY;
+						collisions.slopeAngle = slopeAngle;
+						collisions.descSlope = true;
+						collisions.below = true;
+					}
+				}
 			}
 		}
-		// If the player should jump...
-		if (m_Grounded && jump)
-		{
-			// Add a vertical force to the player.
-			m_Grounded = false;
-			m_Rigidbody2D.AddForce(new Vector2(0f, m_JumpForce));
-		}
+
 	}
 
 
-	private void Flip()
-	{
-		// Switch the way the player is labelled as facing.
-		m_FacingRight = !m_FacingRight;
 
-		// Multiply the player's x local scale by -1.
-		Vector3 theScale = transform.localScale;
-		theScale.x *= -1;
-		transform.localScale = theScale;
-	}
-
-	public bool isFacingRight(){
-		if(this.m_FacingRight){
-			return true;
-		} else {
-			return false;
-		}
-	}
 }

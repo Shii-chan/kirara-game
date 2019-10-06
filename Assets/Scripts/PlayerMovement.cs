@@ -2,13 +2,21 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(CharacterController2D))]
 public class PlayerMovement : MonoBehaviour
 {
 
     [Header("Movementspeed")]
     [SerializeField]
-    public float runSpeed = 40f;
-
+    public float runSpeed = 5.625f;
+    public float jumpHeight = 5f;
+    public float jumpTime = 0.5f;
+    public float gravity;
+    public float jumpVelocity;
+    Vector3 velocity;
+    Vector3 faceRight = new Vector3(1,1,1);
+    Vector3 faceLeft = new Vector3(-1,1,1);
+    
     public CharacterController2D controller;
 
     float horizontalMove = 0f;
@@ -17,40 +25,44 @@ public class PlayerMovement : MonoBehaviour
     public bool matchSpawned = false;
 
     private bool jump = false;
-
     // Start is called before the first frame update
     void Start()
     {
-        
+        gravity = -(2*jumpHeight)/Mathf.Pow(jumpTime, 2);
+        jumpVelocity = Mathf.Abs(gravity) * jumpTime;
+        controller = GetComponent<CharacterController2D>();
     }
     
     void Update()
     {
-        horizontalMove = Input.GetAxisRaw("Horizontal") * runSpeed;
+        
 
-        if (Input.GetKeyDown(KeyCode.X))
+        velocity.x = Input.GetAxisRaw("Horizontal") * runSpeed;
+        if (velocity.x < 0) transform.localScale = faceLeft;
+        if (velocity.x > 0) transform.localScale = faceRight;
+
+        /*if (Input.GetKeyDown(KeyCode.X))
         {
             throwMatch();
+        }*/
+        if (controller.collisions.below) velocity.y = 0;
+        if(Input.GetButtonDown("Jump") && controller.collisions.below) {
+            velocity.y += jumpVelocity;
         }
-
-        if(Input.GetButtonDown("Jump")){
-            this.jump = true;
-        }
+        
+        velocity.y += gravity *Time.deltaTime;
+        controller.Move(velocity * Time.deltaTime, false);
 
     }
 
     private void FixedUpdate()
     {
-            controller.Move(horizontalMove * Time.fixedDeltaTime, false, jump);
-            this.jump = false;
-            // controller.Move(horizontalMove * Time.fixedDeltaTime, false, false);
-            
-        
+
     }
 
-    private void throwMatch()
+    /*private void throwMatch()
     {
-        if(!this.matchSpawned){
+       / if(!this.matchSpawned){
             Vector2 startLocation = new Vector2();
             if(controller.isFacingRight()){
                 startLocation = new Vector2(this.transform.position.x+0.5f,this.transform.position.y+0.5f);
@@ -84,5 +96,5 @@ public class PlayerMovement : MonoBehaviour
 
     public void resetMatch(){
         this.matchSpawned = false;
-    }
+    }*/
 }
