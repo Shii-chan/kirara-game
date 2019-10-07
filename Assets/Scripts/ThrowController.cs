@@ -128,7 +128,7 @@ public class ThrowController : MonoBehaviour
             if (col.gameObject.tag == "Player")
             {
                 Destroy(this.gameObject);
-                col.GetComponent<PlayerMovement>().resetMatch();
+                //col.GetComponent<PlayerMovement>().resetMatch();
             }
         }
 
