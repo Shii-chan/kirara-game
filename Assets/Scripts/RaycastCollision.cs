@@ -17,6 +17,7 @@ public class RaycastCollision : MonoBehaviour
 	public virtual void Start() {
 		bcollider = GetComponent<BoxCollider2D>();
 		CalculateRaySpacing();
+		collisions.faceDir = (int)Mathf.Sign(bcollider.transform.localScale.x);
 
 	}
     public void UpdateRaycastOrigins() {
@@ -34,6 +35,8 @@ public class RaycastCollision : MonoBehaviour
 		public bool ascSlope, descSlope;
 		public float slopeAngle, slopeAngleOld;
 		public Vector3 oldVelocityl;
+		public int faceDir;
+		public bool fallThrough;
 		public void Reset(){
 			above = below = left = right = ascSlope = descSlope = false;
 			slopeAngleOld = slopeAngle;

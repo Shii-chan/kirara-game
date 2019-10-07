@@ -5,29 +5,31 @@ using UnityEngine;
 public class PlatformController : RaycastCollision
 {
     public LayerMask passengerMask;
-    public Vector3 move;
     List<PassengerMovement> passengers;
     Dictionary<Transform,CharacterController2D> passengerDictionary = new Dictionary<Transform, CharacterController2D>();
-    public float timer = 0;
-    public int turnaround;
+    public Vector3 localDestination;
+    Vector3 startPoint;
+    Vector3 globalDestination;
+    public float speed;
+    public float waitTime;
+    float nextMoveTime;
+
+    float distanceToDestination;
+    float percentToDestination;
+
     public override void Start()
     {
         base.Start();
-
+        startPoint = transform.position;
+        globalDestination = localDestination + transform.position;
     }
 
     void Update()
     {
 
-        timer += Time.deltaTime;
-        if (timer > turnaround) { 
-            move = -move;
-            timer = 0;
-        }
         UpdateRaycastOrigins();
-        Vector3 velocity = move * Time.deltaTime;
+        Vector3 velocity = CalculatePlatformMovement();
         CalculateMovement(velocity);
-
         MovePassengers(true);
         transform.Translate (velocity);
         MovePassengers(false);
@@ -42,7 +44,28 @@ public class PlatformController : RaycastCollision
             }
         }
     }
-    void CalculateMovement(Vector3 velocity){
+
+    Vector3 CalculatePlatformMovement(){ //move the platform itself
+
+        Vector3 newPos;
+        if (globalDestination != null && speed != 0 && Time.time > nextMoveTime){
+            distanceToDestination = Vector3.Distance(startPoint, globalDestination);
+            percentToDestination += Time.deltaTime * speed/distanceToDestination;
+            newPos = Vector3.Lerp(startPoint,globalDestination,percentToDestination);
+            newPos -= transform.position;
+            if (percentToDestination >= 1){
+                Vector3 oldDest = globalDestination;
+                globalDestination = startPoint;
+                startPoint = oldDest;
+                percentToDestination = 0;
+                nextMoveTime = Time.time + waitTime;
+            }
+        }
+        else newPos = Vector3.zero;
+        return newPos;
+    }
+
+    void CalculateMovement(Vector3 velocity){ //move characters on the platform
 
         HashSet<Transform> movedPassangers = new HashSet<Transform> ();
         passengers = new List<PassengerMovement>();
@@ -51,16 +74,16 @@ public class PlatformController : RaycastCollision
 
         if (velocity.y != 0) {
             float rayLenght = Mathf.Abs(velocity.y)+skin;
-		    Vector2 rayOrigin;
+		    Vector3 rayOrigin;
 		
 
 		    for (int i = 0; i < vertRayCount; i++){
                 if (dirY == -1) rayOrigin = origins.bottomLeft;
                 else rayOrigin = origins.topLeft;
-                rayOrigin +=Vector2.right * (vertRaySpacing * i);
-			    RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.up * dirY, rayLenght, passengerMask);
+                rayOrigin +=Vector3.right * (vertRaySpacing * i);
+			    RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector3.up * dirY, rayLenght, passengerMask);
 
-                if (hit) {
+                if (hit && hit.distance != 0) {
                     if (!movedPassangers.Contains(hit.transform)) {
                         float pushX = 0;
                         if (dirY == 1) pushX = velocity.x;
@@ -68,7 +91,7 @@ public class PlatformController : RaycastCollision
 
                         passengers.Add(new PassengerMovement(hit.transform, new Vector3(pushX,pushY),dirY == 1, true));
                         movedPassangers.Add(hit.transform);
-                        Debug.DrawRay(rayOrigin, Vector2.up * hit.distance * dirY, Color.red);
+                        Debug.DrawRay(rayOrigin, Vector3.up * hit.distance * dirY, Color.red);
 
                     }
                 }
@@ -77,23 +100,23 @@ public class PlatformController : RaycastCollision
 
         if (velocity.x != 0){
             float rayLenght = Mathf.Abs(velocity.x)+skin;
-		    Vector2 rayOrigin;
+		    Vector3 rayOrigin;
 		
 
 		    for (int i = 0; i < horiRayCount; i++){
                 if (dirX == -1) rayOrigin = origins.bottomLeft;
                 else rayOrigin = origins.bottomRight;
-                rayOrigin +=Vector2.up * (horRaySpacing * i);
-                RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.right * dirX, rayLenght, passengerMask);
+                rayOrigin +=Vector3.up * (horRaySpacing * i);
+                RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector3.right * dirX, rayLenght, passengerMask);
                 
-                if (hit) {
+                if (hit && hit.distance != 0) {
                     if (!movedPassangers.Contains(hit.transform)) {
                         float pushX = velocity.x - (hit.distance - skin) * dirX;
                         float pushY = -skin;
 
                         passengers.Add(new PassengerMovement(hit.transform, new Vector3(pushX,pushY),false, true));
                         movedPassangers.Add(hit.transform);
-                        Debug.DrawRay(rayOrigin, Vector2.up * hit.distance * dirY, Color.red);
+                        Debug.DrawRay(rayOrigin, Vector3.up * hit.distance * dirY, Color.red);
 
                     }
                 }
@@ -102,21 +125,21 @@ public class PlatformController : RaycastCollision
 
         if (dirY == -1 || velocity.y ==0 && velocity.x != 0){
              float rayLenght = skin * 2;
-		    Vector2 rayOrigin;
+		    Vector3 rayOrigin;
 		
 
 		    for (int i = 0; i < vertRayCount; i++){
                 rayOrigin = origins.topLeft + Vector2.right * (vertRaySpacing * i);
-			    RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.up, rayLenght, passengerMask);
+			    RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector3.up, rayLenght, passengerMask);
 
-                if (hit) {
+                if (hit && hit.distance != 0) {
                     if (!movedPassangers.Contains(hit.transform)) {
                         float pushX = velocity.x;
                         float pushY = velocity.y;
 
                         passengers.Add(new PassengerMovement(hit.transform, new Vector3(pushX,pushY),true, false));
                         movedPassangers.Add(hit.transform);
-                        Debug.DrawRay(rayOrigin, Vector2.up * hit.distance * dirY, Color.red);
+                        Debug.DrawRay(rayOrigin, Vector3.up * hit.distance * dirY, Color.red);
                     }
                 }
             }    
@@ -134,6 +157,22 @@ public class PlatformController : RaycastCollision
             velocity = _velocity;
             standingOnPlatform = _standingOn;
             moveBefore = _moveBefore;
+        }
+    }
+
+    void OnDrawGizmos(){
+        if (localDestination != null){
+            Gizmos.color = Color.red;
+            float size = 0.3f;
+
+            Vector3 globalDestinationPos;
+            if (Application.isPlaying){
+                globalDestinationPos = globalDestination;
+            }
+            else globalDestinationPos = localDestination + transform.position;
+            Gizmos.DrawLine(globalDestinationPos - Vector3.up * size, globalDestinationPos + Vector3.up * size);
+            Gizmos.DrawLine(globalDestinationPos - Vector3.left * size, globalDestinationPos + Vector3.left * size);
+
         }
     }
 }

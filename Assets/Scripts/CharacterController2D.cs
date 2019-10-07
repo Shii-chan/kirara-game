@@ -6,21 +6,30 @@ public class CharacterController2D : RaycastCollision
 	float maxClimbAngle = 65f;
 	float maxDescendAngle = 60f;
 
-	public void Move(Vector3 velocity, bool standingOn){
+	public void Move(Vector2 velocity, bool standingOn){
+		Move(velocity, false, standingOn);
+	}
+
+	public void Move(Vector2 velocity, bool _jumpThrough, bool standingOn = false){
 		UpdateRaycastOrigins();
 		collisions.Reset();
 		collisions.oldVelocityl = velocity;
+		if (_jumpThrough){
+			collisions.fallThrough = true;
+			Invoke("ResetFallThrough", 0.3f);
+		}
+		if (velocity.x != 0) collisions.faceDir = (int)Mathf.Sign(velocity.x);
 		if (velocity.y < 0) DescendSlope(ref velocity);
-		if (velocity.x != 0) HorisontalCollisions(ref velocity);
+		HorisontalCollisions(ref velocity);
 		if (velocity.y != 0) VerticalCollisions(ref velocity);
 		transform.Translate(velocity);
-
+		
 		if (standingOn){
 			collisions.below = true;
 		}
 	}
 
-	void VerticalCollisions(ref Vector3 velocity){
+	void VerticalCollisions(ref Vector2 velocity){
 		float dirY = Mathf.Sign(velocity.y);
 		float rayLenght = Mathf.Abs(velocity.y)+skin;
 		Vector2 rayOrigin;
@@ -34,6 +43,13 @@ public class CharacterController2D : RaycastCollision
 			
 
 			if (hit) {
+				if (hit.collider.tag == "JumpThrough") { //skip collisions with jump through platforms
+					if(dirY == 1 || hit.distance == 0) continue;
+					if(collisions.fallThrough) {
+						collisions.below = false;
+						continue;
+					}
+				}
 				velocity.y = (hit.distance - skin) * dirY;
 				rayLenght = hit.distance;
 
@@ -63,11 +79,13 @@ public class CharacterController2D : RaycastCollision
 		}
 	}
 
-	void HorisontalCollisions(ref Vector3 velocity){
-		float dirX = Mathf.Sign(velocity.x);
+	void HorisontalCollisions(ref Vector2 velocity){
+		float dirX = collisions.faceDir;
 		float rayLenght = Mathf.Abs(velocity.x)+skin;
+		if (Mathf.Abs(velocity.x) < skin) rayLenght = skin*2;
 		Vector2 rayOrigin;
 		
+
 
 		for (int i = 0; i < horiRayCount; i++){
 			if (dirX == -1) rayOrigin = origins.bottomLeft;
@@ -78,7 +96,7 @@ public class CharacterController2D : RaycastCollision
 
 			if (hit) {
 
-				if (hit.distance == 0){
+				if (hit.distance == 0 || hit.transform.tag == "JumpThrough"){
 					continue;
 				}
 				float slopeAngle = Vector2.Angle(hit.normal, Vector2.up);
@@ -110,7 +128,7 @@ public class CharacterController2D : RaycastCollision
 		}
 	}
 
-	void ClimbSlope(ref Vector3 velocity, float slopeAngle){
+	void ClimbSlope(ref Vector2 velocity, float slopeAngle){
 		float moveDistance = Mathf.Abs(velocity.x);
 		float climbVelocityY = Mathf.Sin ( slopeAngle * Mathf.Deg2Rad) * moveDistance;
 		if (velocity.y <= climbVelocityY){
@@ -122,7 +140,7 @@ public class CharacterController2D : RaycastCollision
 		}
 	}
 
-	void DescendSlope(ref Vector3 velocity){
+	void DescendSlope(ref Vector2 velocity){
 		float dirX = Mathf.Sign(velocity.x);
 		Vector2 rayOrigin;
 		if (dirX == -1) rayOrigin = origins.bottomRight;
@@ -147,6 +165,8 @@ public class CharacterController2D : RaycastCollision
 
 	}
 
-
+	void ResetFallThrough(){
+		collisions.fallThrough = false;
+	}
 
 }

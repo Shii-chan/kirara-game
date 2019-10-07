@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
+[RequireComponent(typeof(CharacterController2D))]
 public class KuromonBehaviourScript : MonoBehaviour
 {
     private enum State{
@@ -21,21 +23,22 @@ public class KuromonBehaviourScript : MonoBehaviour
     private Movement currentMovement;
 
     private bool m_FacingRight = false;
-    private Vector3 m_Velocity = Vector3.zero;
+    public Vector3 m_Velocity = Vector3.zero;
+    float gravity = -33f;
 
     [Header("Movementspeed")]
     [SerializeField]
-    public float runSpeed = 1f;
+    public float runSpeed = 2f;
 
     [Range(0, .3f)] 
     [SerializeField]
     private float m_MovementSmoothing = .05f;
 
-    private Rigidbody2D m_Rigidbody2D;
+    CharacterController2D controller;
 
     [Header("Movement time")]
     [SerializeField]
-    private float moveTime = 1000;
+    private float moveTime = 2;
     private float timeMoved = 0;
 
     private float idleTime = 1;
@@ -45,7 +48,7 @@ public class KuromonBehaviourScript : MonoBehaviour
     
     void Start()
     {
-        m_Rigidbody2D = GetComponent<Rigidbody2D>();
+        controller = GetComponent<CharacterController2D>();
         this.curState = State.Idle;
         this.lastMovement = Movement.Left;
     }
@@ -54,7 +57,7 @@ public class KuromonBehaviourScript : MonoBehaviour
     {
         
         if(curState==State.Idle){
-            this.timeIdled = this.timeIdled + Time.fixedDeltaTime;
+            this.timeIdled = this.timeIdled + Time.deltaTime;
             if(this.timeIdled > this.idleTime){
                 InitiateMovement();
             }            
@@ -99,11 +102,12 @@ public class KuromonBehaviourScript : MonoBehaviour
         if(this.m_FacingRight){
             this.Flip();
         }
+        m_Velocity.x = -runSpeed*Time.deltaTime;
+        if (controller.collisions.below) m_Velocity.y = 0;
+        else m_Velocity.y += gravity * Time.deltaTime;
+        controller.Move(m_Velocity * Time.deltaTime, false);
 
-        Vector3 targetVelocity = new Vector2(-runSpeed, m_Rigidbody2D.velocity.y);
-        m_Rigidbody2D.velocity = Vector3.SmoothDamp(m_Rigidbody2D.velocity, targetVelocity, ref m_Velocity, m_MovementSmoothing);
-
-        this.timeMoved = this.timeMoved + Time.fixedDeltaTime;
+        this.timeMoved = this.timeMoved + Time.deltaTime;
     }
 
     private void MoveRight(){
@@ -115,10 +119,13 @@ public class KuromonBehaviourScript : MonoBehaviour
             this.Flip();
         }
 
-        Vector3 targetVelocity = new Vector2(runSpeed, m_Rigidbody2D.velocity.y);
-		m_Rigidbody2D.velocity = Vector3.SmoothDamp(m_Rigidbody2D.velocity, targetVelocity, ref m_Velocity, m_MovementSmoothing);
+        m_Velocity.x = runSpeed * Time.deltaTime;
+        if (controller.collisions.below) m_Velocity.y = 0;
+        else m_Velocity.y += gravity * Time.deltaTime;
 
-        this.timeMoved = this.timeMoved + Time.fixedDeltaTime;
+        controller.Move(m_Velocity * Time.deltaTime, false);
+        
+        this.timeMoved = this.timeMoved + Time.deltaTime;
     }
 
     private void Flip()
