@@ -104,6 +104,7 @@ public class PlatformController : RaycastCollision
 		
 
 		    for (int i = 0; i < horiRayCount; i++){
+                if (transform.tag == "JumpThrough") continue;
                 if (dirX == -1) rayOrigin = origins.bottomLeft;
                 else rayOrigin = origins.bottomRight;
                 rayOrigin +=Vector3.up * (horRaySpacing * i);
